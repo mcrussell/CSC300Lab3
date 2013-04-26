@@ -1,0 +1,11 @@
+FosmidDH	.	mRNA	100	497	.	-	.	gene_id "geneDH1"; transcript_id "geneDH1-RA";
+FosmidDH	.	CDS	100	300	.	-	.	gene_id "geneDH1"; transcript_id "geneDH1-RA";
+FosmidDH	.	CDS	400	500	.	-	.	gene_id "geneDH1"; transcript_id "geneDH1-RA";
+FosmidDH	.	mRNA	700	1147	.	-	.	gene_id "geneDH2"; transcript_id "geneDH2-RA";
+FosmidDH	.	CDS	700	800	.	-	.	gene_id "geneDH2"; transcript_id "geneDH2-RA";
+FosmidDH	.	CDS	850	1000	.	-	.	gene_id "geneDH2"; transcript_id "geneDH2-RA";
+FosmidDH	.	CDS	1100	1150	.	-	.	gene_id "geneDH2"; transcript_id "geneDH2-RA";
+FosmidDH	.	mRNA	1300	1897	.	-	.	gene_id "geneDH3"; transcript_id "geneDH3-RA";
+FosmidDH	.	CDS	1300	1400	.	-	.	gene_id "geneDH3"; transcript_id "geneDH3-RA";
+FosmidDH	.	CDS	1500	1700	.	-	.	gene_id "geneDH3"; transcript_id "geneDH3-RA";
+FosmidDH	.	CDS	1750	1900	.	-	.	gene_id "geneDH3"; transcript_id "geneDH3-RA";

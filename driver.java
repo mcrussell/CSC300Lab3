@@ -22,8 +22,16 @@ class GFFEntry
     this.geneName = geneName;
     this.isoName = isoName;
     this.type = type;
-    this.start = Integer.valueOf(start);
-    this.end = Integer.valueOf(end);
+    if (Integer.valueOf(start) < Integer.valueOf(end))
+    {
+      this.start = Integer.valueOf(start);
+      this.end = Integer.valueOf(end);
+    }
+    else
+    {
+      this.start = Integer.valueOf(end);
+      this.end = Integer.valueOf(start);
+    }
     this.positive = (positive == "+");
   }
 }
@@ -57,6 +65,27 @@ class Isoform
   private ArrayList<DNARegion> exonList = new ArrayList<DNARegion>();
   private String name;
   private int mRNAstart;
+
+  public ArrayList<DNARegion> getExonList()
+  {
+    return exonList;
+  }
+
+  public String getName()
+  {
+    return name;
+  }
+
+  public int getmRNAstart()
+  {
+    return mRNAstart;
+  }
+
+  public int getmRNAend()
+  {
+    return mRNAend;
+  }
+
   private int mRNAend;
 
   public Isoform(String name, int mRNAstart, int mRNAend)
@@ -108,7 +137,7 @@ class Isoform
   // Includes end codon assumes positive
   public int getCDSSpan()
   {
-    return mRNAend - mRNAstart + 3;
+    return mRNAend - mRNAstart + 4;
   }
 
   public int getCDSSize()
@@ -124,7 +153,7 @@ class Isoform
 
   public int getIntronSize()
   {
-    return getCDSSpan() + 3 - getCDSSize();
+    return getCDSSpan() - getCDSSize();
   }
 
   public ArrayList<DNARegion> getExons()
@@ -155,10 +184,15 @@ class Gene
   private int numIntrons;
   private int maxCDSSize;
   private long totalCDS;
-  
+
   public Gene()
   {
     isoList = new HashMap<String, Isoform>();
+  }
+
+  public HashMap<String, Isoform> getIsoList()
+  {
+    return isoList;
   }
 
   public int getMaxCDSSize()
@@ -232,30 +266,32 @@ class Gene
     while (it.hasNext())
     {
       Isoform isoform = it.next().getValue();
+      System.out.println(isoform);
       CDSSpanSum += isoform.getCDSSpan();
       CDSSizeSum += isoform.getCDSSize();
+      System.out.println(CDSSizeSum);
       numExons += isoform.getNumExons();
       intronSizeSum += isoform.getIntronSize();
       numIntrons += isoform.getNumIntrons();
-      if(maxExons.size() == 0)
+      if (maxExons == null)
       {
         maxExons = new ArrayList<Integer>();
-        for(int i = 0; i < isoform.getNumExons(); i++)
+        for (int i = 0; i < isoform.getNumExons(); i++)
         {
           maxExons.add(new Integer(isoform.getExon(i).size));
         }
       }
       else
       {
-        for(int i = 0; i < isoform.getNumExons(); i++)
+        for (int i = 0; i < isoform.getNumExons(); i++)
         {
-          if(maxExons.get(i) < isoform.getExon(i).size)
+          if (maxExons.get(i) < isoform.getExon(i).size)
             maxExons.set(i, new Integer(isoform.getExon(i).size));
         }
       }
       // it.remove(); // avoids a ConcurrentModificationException
     }
-    for(int i = 0; i < maxExons.size(); i++)
+    for (int i = 0; i < maxExons.size(); i++)
     {
       totalCDS += maxExons.get(i);
     }
@@ -277,10 +313,21 @@ class DNASequence
   private double averageGenesPer10kb;
   private double totalNuc;
   private double totalCDSPerTotal;
-  
+  private double totalNucPerGene;
+
   public DNASequence()
   {
     geneList = new HashMap<String, Gene>();
+  }
+
+  public HashMap<String, Gene> getGeneList()
+  {
+    return geneList;
+  }
+
+  public double getTotalCDSPerTotal()
+  {
+    return totalCDSPerTotal;
   }
 
   public double getAverageIntronSize()
@@ -357,6 +404,8 @@ class DNASequence
     int sumNumIntrons = 0;
     long totalCDS = 0L;
     Iterator<Entry<String, Gene>> it = geneList.entrySet().iterator();
+    int minMRNA = 0;
+    int maxMRNA = 0;
     while (it.hasNext())
     {
       Gene gene = (Gene) it.next().getValue();
@@ -367,20 +416,42 @@ class DNASequence
       sumNumExons += gene.getNumExons();
       sumIntronSize += gene.getIntronSizeSum();
       sumNumIntrons += gene.getNumIntrons();
-      
+
       totalCDS += gene.getTotalCDS();
       // it.remove(); // avoids a ConcurrentModificationException
+      if (minMRNA == 0)
+      {
+        minMRNA = ((Isoform) gene.getIsoList().values().toArray()[0])
+            .getmRNAstart();
+        maxMRNA = ((Isoform) gene.getIsoList().values().toArray()[0])
+            .getmRNAend();
+      }
+      else
+      {
+        minMRNA = Math.min(minMRNA, ((Isoform) gene.getIsoList().values()
+            .toArray()[0]).getmRNAstart());
+        maxMRNA = Math.max(maxMRNA, ((Isoform) gene.getIsoList().values()
+            .toArray()[0]).getmRNAend());
+      }
     }
     averageCDSSpan = (double) sumCDSSpan / sumNumIso;
     averageCDSSize = (double) sumCDSSize / sumNumIso;
     averageExonSize = (double) sumCDSSize / sumNumExons;
     averageIntronSize = (double) sumIntronSize / sumNumIntrons;
 
-    averageIntergenicRegion = 0;
-    averageCDSSpanPerTotal = (double) sumCDSSpan / totalNuc;
-    averageCDSSizePerTotal = (double) sumCDSSize / totalNuc;
-    averageGenesPer10kb = geneList.size() /totalNuc / 10000;
+    averageIntergenicRegion = (maxMRNA - minMRNA + 3 + 1 - averageCDSSpan
+        * geneList.size())
+        / (geneList.size() - 1);
+    averageCDSSpanPerTotal = geneList.size() * averageCDSSpan / totalNuc;
+    averageCDSSizePerTotal = geneList.size() * averageCDSSize / totalNuc;
+    averageGenesPer10kb = (double) geneList.size() / totalNuc * 10000;
     totalCDSPerTotal = (double) totalCDS / totalNuc;
+    totalNucPerGene = totalNuc / 10000 / geneList.size();
+  }
+
+  public double getTotalNucPerGene()
+  {
+    return totalNucPerGene;
   }
 }
 
@@ -389,10 +460,11 @@ public class driver
   public static void main(String[] args)
   {
     DNASequence sequence = new DNASequence();
-    parseGFFFile("test.gff", sequence);
+    parseGFFFile("mf.gff", sequence);
     String nucleotides = readFastaFile("test.fasta");
     sequence.setNuc(nucleotides.length());
-
+    System.out.println("total:" + nucleotides.length());
+    sequence.setNuc(300);
     sequence.calculate();
 
     System.out.println(sequence.getAverageCDSSpan());
@@ -403,6 +475,9 @@ public class driver
     System.out.println(sequence.getAverageCDSSpanPerTotal());
     System.out.println(sequence.getAverageCDSSizePerTotal());
     System.out.println(sequence.getAverageGenesPer10kb());
+    System.out.println(sequence.getTotalCDSPerTotal());
+    System.out.println(sequence.getTotalNucPerGene());
+
     System.out.println(sequence.getTotalNuc());
 
     System.out.println(sequence.geneList);
@@ -420,7 +495,8 @@ public class driver
       {
         currLine = fScanner.nextLine();
         String[] splitLine = currLine.split("\\s+");
-        if (splitLine[2].equals("mRNA") || splitLine[2].equals("CDS"))
+        if (splitLine.length > 10
+            && (splitLine[2].equals("mRNA") || splitLine[2].equals("CDS")))
         {
           // 9 genename
           // 11 isoname
@@ -430,9 +506,9 @@ public class driver
           // 6 +/-
           // System.out.println(currLine);
           // System.out.println(splitLine[0]);
-          if (splitLine.length > 10)
-            sequence.add(new GFFEntry(splitLine[9], splitLine[11],
-                splitLine[2], splitLine[3], splitLine[4], splitLine[6]));
+
+          sequence.add(new GFFEntry(splitLine[9], splitLine[11], splitLine[2],
+              splitLine[3], splitLine[4], splitLine[6]));
         }
 
       }
@@ -449,7 +525,8 @@ public class driver
     Scanner sc;
     try
     {
-      sc = new Scanner(new File(path));
+      FileInputStream fstream = new FileInputStream(path);
+      sc = new Scanner(fstream);
     } catch (Exception e)
     {
       sc = new Scanner("");

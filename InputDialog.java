@@ -1,5 +1,3 @@
-package bioGUI;
-
 import java.awt.Component;
 import java.awt.ComponentOrientation;
 import java.awt.Container;
@@ -38,7 +36,7 @@ public class InputDialog extends JDialog {
     * GUI Components
     */
    private Container mPane;
-   private JTextField mFile, mStartPos, mEndPos, mWinSize, mShiftIncr;
+   private JTextField mFile, mStartPos, mEndPos, mWinSize, mShiftIncr, mFile2;
    private JTextArea mDisplayArea;
    private JCheckBox mUseSlidingWindow;
 
@@ -55,6 +53,7 @@ public class InputDialog extends JDialog {
       mPane.setSize(DIALOG_WIDTH, DIALOG_HEIGHT);
 
       mFile = new JTextField(20);
+      mFile2 = new JTextField(20);
       mStartPos = new JTextField(20);
       mEndPos = new JTextField(20);
 
@@ -77,11 +76,15 @@ public class InputDialog extends JDialog {
     */
    public void init() {
       JPanel fastaFileField = prepareFileField(mFile);
+      JPanel gffFileField = prepareFileField(mFile2);
+
       JPanel posField = prepareParamControls(mStartPos, mEndPos, mWinSize,
                                              mShiftIncr, mUseSlidingWindow);
 
       mPane.add(fastaFileField);
-      mPane.add(posField);
+      mPane.add(gffFileField);
+
+      //mPane.add(posField);
 
       //mPane.add(mDisplayArea);
       JScrollPane scrollDisplay = new JScrollPane(mDisplayArea);
@@ -250,10 +253,14 @@ public class InputDialog extends JDialog {
                 "No FASTA file was selected",
                 "Invalid File", JOptionPane.ERROR_MESSAGE);
             }
+            if (mFile2.getText().equals("")) {
+              JOptionPane.showMessageDialog(null,
+               "No gff file was selected",
+               "Invalid File", JOptionPane.ERROR_MESSAGE);
+           }
 
             else {
-              //TODO
-               mDisplayArea.setText("Code output goes here!\n");
+              mDisplayArea.setText(driver.drive(mFile.getText(),mFile2.getText()));
             }
          }
       });

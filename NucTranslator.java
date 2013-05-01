@@ -1,9 +1,10 @@
 import java.util.HashMap;
+import java.lang.StringBuilder;
 
 public class NucTranslator {
-   private HashMap<String, String> table;
+   private static HashMap<String, String> table;
 
-   public NucTranslator() {
+   public static void initialize() {
       table = new HashMap<String, String>();
 
       table.put("TTT", "F");
@@ -87,12 +88,33 @@ public class NucTranslator {
       table.put("GGG", "G");
    }
 
-   public String translate (String seq) {
+   public static String translate (String seq) {
       String aminoseq = "";
       for(int i = 0; i <= seq.length() - 3; i += 3) {
          aminoseq = aminoseq + table.get(seq.substring(i, i + 3));
       }
 
       return aminoseq;
+   }
+
+   public static String reverseComplement (String seq) {
+      StringBuilder s = new StringBuilder();
+      String reverse = new StringBuilder(seq).reverse().toString();
+      
+      for(int i = reverse.length() - 1; i >= 0; i--) {
+         switch(reverse.charAt(i)) {
+            case 'A': s.append('T');
+                      break;
+            case 'T': s.append('A');
+                      break;
+            case 'G': s.append('C');
+                      break;
+            case 'C': s.append('G');
+                      break;
+            default:  break;
+         }
+      }
+
+      return s.toString();
    }
 }

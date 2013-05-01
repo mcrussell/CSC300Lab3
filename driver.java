@@ -1,12 +1,21 @@
+//Lab 3 CSC 448 Spring 2013
+//Andrew Nguyen, Bryan Ching, Matt Crussell
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.Collections;
+import java.util.ArrayList;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.io.FileNotFoundException;
 
+/*
+ * Creates an Class for each line entry in GFF file
+ */
 class GFFEntry
 {
   String geneName;
@@ -15,9 +24,10 @@ class GFFEntry
   Integer start;
   Integer end;
   Boolean positive;
+  String sequence;
 
   public GFFEntry(String geneName, String isoName, String type, String start,
-      String end, String positive)
+      String end, String positive, String sequence)
   {
     this.geneName = geneName;
     this.isoName = isoName;
@@ -33,31 +43,41 @@ class GFFEntry
       this.end = Integer.valueOf(start);
     }
     this.positive = (positive == "+");
+    this.sequence = sequence;
   }
 }
-
+/*
+ * Implements Comparable for future potential implementions
+ * Contains information on DNA Region, either Intron or Exon
+ */
 class DNARegion implements Comparable
 {
   public int start;
   public int end;
   public int size;
+  public String exonString;
 
-  public DNARegion(int start, int end)
+  public DNARegion(int start, int end, String sequence)
   {
     this.start = start;
     this.end = end;
     size = end - start + 1;
+    calculate(sequence);
+  }
+  
+  //Calculates exonString information  
+  private void calculate(String sequence)
+  {
+    exonString = sequence.substring(start -1, end + 1 -1);//TODO
   }
 
+  //Not used in current implementation
   public int compareTo(Object otherObject)
   {
     DNARegion other = (DNARegion) otherObject;
-    if (other.start == start)
-    {
-      System.out.println("EXON START VALUES EQUAL, NEED TEST CASE");
-    }
     return other.start - start;
   }
+
 }
 
 class Isoform
@@ -71,11 +91,6 @@ class Isoform
     return exonList;
   }
 
-  public String getName()
-  {
-    return name;
-  }
-
   public int getmRNAstart()
   {
     return mRNAstart;
@@ -87,12 +102,14 @@ class Isoform
   }
 
   private int mRNAend;
-
+  private boolean positive;
+  
   public Isoform(String name, int mRNAstart, int mRNAend)
   {
     this.name = name;
     this.mRNAstart = mRNAstart;
     this.mRNAend = mRNAend;
+
   }
 
   public Isoform()
@@ -104,7 +121,7 @@ class Isoform
   {
     if (entry.type.equals("CDS"))
     {
-      addExon(entry.start, entry.end);
+      addExon(entry.start, entry.end, entry.sequence);
     }
     else
     {
@@ -114,9 +131,9 @@ class Isoform
   }
 
   // Assume + direction
-  public void addExon(int CDSstart, int CDSend)
+  public void addExon(int CDSstart, int CDSend, String sequence)
   {
-    exonList.add(new DNARegion(CDSstart, CDSend));
+    exonList.add(new DNARegion(CDSstart, CDSend, sequence));
   }
 
   public DNARegion getExon(int index)
@@ -127,6 +144,11 @@ class Isoform
   public int getNumExons()
   {
     return exonList.size();
+  }
+
+  public String getName()
+  {
+    return name;
   }
 
   public int getNumIntrons()
@@ -160,7 +182,7 @@ class Isoform
   {
     return exonList;
   }
-
+/*
   public ArrayList<DNARegion> generateIntronList()
   {
     ArrayList<DNARegion> intronList = new ArrayList<DNARegion>();
@@ -171,7 +193,18 @@ class Isoform
     }
     return intronList;
   }
-
+  */
+  public String calculate()
+  {
+    String isoformString = new String();
+    for (int i = 0; i < exonList.size(); i++)
+    {
+      isoformString = isoformString.concat(exonList.get(i).exonString);
+    }
+    if(!positive)
+      isoformString = NucTranslator.reverseComplement(isoformString);
+    return NucTranslator.translate(isoformString);
+  }
 }
 
 class Gene
@@ -184,7 +217,7 @@ class Gene
   private int numIntrons;
   private int maxCDSSize;
   private long totalCDS;
-
+  private String geneString = new String();
   public Gene()
   {
     isoList = new HashMap<String, Isoform>();
@@ -253,7 +286,10 @@ class Gene
   {
     return isoList.size();
   }
-
+  public String getIsoforms()
+  {
+    return geneString;
+  }
   public void calculate()
   {
     numExons = 0;
@@ -265,11 +301,11 @@ class Gene
     totalCDS = 0L;
     while (it.hasNext())
     {
-      Isoform isoform = it.next().getValue();
-      System.out.println(isoform);
+      Entry<String, Isoform> entry = it.next();
+      Isoform isoform = entry.getValue();
+      geneString = geneString.concat(entry.getKey() + ": " + isoform.calculate() + "\n");
       CDSSpanSum += isoform.getCDSSpan();
       CDSSizeSum += isoform.getCDSSize();
-      System.out.println(CDSSizeSum);
       numExons += isoform.getNumExons();
       intronSizeSum += isoform.getIntronSize();
       numIntrons += isoform.getNumIntrons();
@@ -314,6 +350,7 @@ class DNASequence
   private double totalNuc;
   private double totalCDSPerTotal;
   private double totalNucPerGene;
+  public String seqString = new String();
 
   public DNASequence()
   {
@@ -394,6 +431,11 @@ class DNASequence
     this.totalNuc = totalNuc;
   }
 
+  public String getSequence()
+  {
+    return seqString;
+  }
+
   public void calculate()
   {
     long sumCDSSpan = 0L;
@@ -408,15 +450,17 @@ class DNASequence
     int maxMRNA = 0;
     while (it.hasNext())
     {
-      Gene gene = (Gene) it.next().getValue();
+      Entry<String, Gene> entry = it.next();
+      Gene gene = (Gene) entry.getValue();
       gene.calculate();
+      seqString = seqString.concat(entry.getKey() + "\n" + gene.getIsoforms() + "\n");
       sumNumIso += gene.getIsoSize();
       sumCDSSpan += gene.getCDSSpanSum();
       sumCDSSize += gene.getCDSSizeSum();
       sumNumExons += gene.getNumExons();
       sumIntronSize += gene.getIntronSizeSum();
       sumNumIntrons += gene.getNumIntrons();
-
+      
       totalCDS += gene.getTotalCDS();
       // it.remove(); // avoids a ConcurrentModificationException
       if (minMRNA == 0)
@@ -456,35 +500,36 @@ class DNASequence
 }
 
 public class driver
-{
-  public static void main(String[] args)
+{  
+  public static String drive(String FASTAfile, String GFFfile)
   {
     DNASequence sequence = new DNASequence();
-    parseGFFFile("mf.gff", sequence);
-    String nucleotides = readFastaFile("test.fasta");
+    String nucleotides = readFastaFile(FASTAfile);
+
+    parseGFFFile(GFFfile, sequence, nucleotides);
     sequence.setNuc(nucleotides.length());
-    System.out.println("total:" + nucleotides.length());
-    sequence.setNuc(300);
+    NucTranslator.initialize();
     sequence.calculate();
 
-    System.out.println(sequence.getAverageCDSSpan());
-    System.out.println(sequence.getAverageCDSSize());
-    System.out.println(sequence.getAverageExonSize());
-    System.out.println(sequence.getAverageIntronSize());
-    System.out.println(sequence.getAverageIntergenicRegion());
-    System.out.println(sequence.getAverageCDSSpanPerTotal());
-    System.out.println(sequence.getAverageCDSSizePerTotal());
-    System.out.println(sequence.getAverageGenesPer10kb());
-    System.out.println(sequence.getTotalCDSPerTotal());
-    System.out.println(sequence.getTotalNucPerGene());
+    String returnString = new String();
+    
+    returnString = returnString.concat("\n getAverageCDSSpan " + sequence.getAverageCDSSpan());
+    returnString = returnString.concat("\n getAverageCDSSize " + sequence.getAverageCDSSize());
+    returnString = returnString.concat("\n getAverageExonSize " + sequence.getAverageExonSize());
+    returnString = returnString.concat("\n getAverageIntronSize " + sequence.getAverageIntronSize());
+    returnString = returnString.concat("\n getAverageIntergenicRegion " + sequence.getAverageIntergenicRegion());
+    returnString = returnString.concat("\n getAverageCDSSpanPerTotal " + sequence.getAverageCDSSpanPerTotal());
+    returnString = returnString.concat("\n getAverageCDSSizePerTotal " + sequence.getAverageCDSSizePerTotal());
+    returnString = returnString.concat("\n getAverageGenesPer10kb " + sequence.getAverageGenesPer10kb());
+    returnString = returnString.concat("\n getTotalNuc " + sequence.getTotalNuc());
 
-    System.out.println(sequence.getTotalNuc());
 
-    System.out.println(sequence.geneList);
+    //returnString = returnString.concat("\n" + sequence.geneList);
+    returnString = returnString.concat("\n" + sequence.seqString);
+    return returnString;
 
   }
-
-  public static void parseGFFFile(String path, DNASequence sequence)
+  public static void parseGFFFile(String path, DNASequence sequence, String seq)
   {
     try
     {
@@ -504,19 +549,18 @@ public class driver
           // 3 start
           // 4 end
           // 6 +/-
-          // System.out.println(currLine);
-          // System.out.println(splitLine[0]);
+          // returnString = returnString.concat("" + currLine);
+          // returnString = returnString.concat("" + splitLine[0]);
 
           sequence.add(new GFFEntry(splitLine[9], splitLine[11], splitLine[2],
-              splitLine[3], splitLine[4], splitLine[6]));
+              splitLine[3], splitLine[4], splitLine[6],seq));
         }
 
       }
-
       fScanner.close();
     } catch (FileNotFoundException e)
     {
-      System.out.println("File " + path + " not found.");
+  //    returnString = returnString.concat("" + "File " + path + " not found.");
     }
   }
 
@@ -525,8 +569,7 @@ public class driver
     Scanner sc;
     try
     {
-      FileInputStream fstream = new FileInputStream(path);
-      sc = new Scanner(fstream);
+      sc = new Scanner(new File(path));
     } catch (Exception e)
     {
       sc = new Scanner("");

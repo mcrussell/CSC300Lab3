@@ -75,7 +75,7 @@ class DNARegion implements Comparable
   public int compareTo(Object otherObject)
   {
     DNARegion other = (DNARegion) otherObject;
-    return other.start - start;
+    return start - other.start;
   }
 
 }
@@ -197,12 +197,14 @@ this.positive = positive;
   public String calculate()
   {
     String isoformString = new String();
+    Collections.sort(exonList);      
     for (int i = 0; i < exonList.size(); i++)
     {
+      System.out.println(exonList.get(i).start);
       isoformString = isoformString.concat(exonList.get(i).exonString);
     }
-    if(!positive)
-      isoformString = NucTranslator.reverseComplement(isoformString);
+    if(positive == false)
+      isoformString = new StringBuilder(NucTranslator.reverseComplement(isoformString)).reverse().toString();
     return NucTranslator.translate(isoformString);
   }
 }

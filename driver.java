@@ -42,7 +42,7 @@ class GFFEntry
       this.start = Integer.valueOf(end);
       this.end = Integer.valueOf(start);
     }
-    this.positive = (positive == "+");
+    this.positive = (positive.equals("+"));
     this.sequence = sequence;
   }
 }
@@ -68,7 +68,7 @@ class DNARegion implements Comparable
   //Calculates exonString information  
   private void calculate(String sequence)
   {
-    exonString = sequence.substring(start -1, end + 1 -1);//TODO
+    exonString = sequence.substring(start -1, end);//TODO
   }
 
   //Not used in current implementation
@@ -112,9 +112,9 @@ class Isoform
 
   }
 
-  public Isoform()
+  public Isoform(boolean positive)
   {
-
+this.positive = positive;
   }
 
   public void add(GFFEntry entry)
@@ -276,7 +276,7 @@ class Gene
     }
     else
     {
-      Isoform isoform = new Isoform();
+      Isoform isoform = new Isoform(entry.positive);
       isoform.add(entry);
       isoList.put(entry.isoName, isoform);
     }
@@ -521,6 +521,7 @@ public class driver
     returnString = returnString.concat("\n getAverageCDSSpanPerTotal " + sequence.getAverageCDSSpanPerTotal());
     returnString = returnString.concat("\n getAverageCDSSizePerTotal " + sequence.getAverageCDSSizePerTotal());
     returnString = returnString.concat("\n getAverageGenesPer10kb " + sequence.getAverageGenesPer10kb());
+    returnString = returnString.concat("\n getTotalCDSPerTotal " + sequence.getTotalCDSPerTotal());
     returnString = returnString.concat("\n getTotalNuc " + sequence.getTotalNuc());
 
 

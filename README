@@ -1,0 +1,15 @@
+Team 4
+Matt Crussell
+Brian Ching
+Andrew Nguyen
+
+To Run:
+1) Select FASTA file in first slot and GFF file in second slot
+2) Choose search space type
+3) If search space is range, requires start and end
+   If search space is to start codon, enter number of bases upstream to search in 'start' field
+4) Select type of search (specific string, or maximum substring)
+   if specific string, enter string
+   if maximum substring, enter minimum length
+5) Input filter size if searching for minimum length repeated strings
+6) Select run to get output.
